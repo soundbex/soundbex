@@ -60,6 +60,7 @@ dependencies {
 
     // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.foundation.layout)
 
     // Test
     testImplementation(libs.junit)

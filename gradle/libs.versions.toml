@@ -13,6 +13,7 @@ media3 = "1.2.1"
 coil = "2.5.0"
 material3 = "1.1.2"
 lifecycleViewModel = "2.6.2"
+foundationLayout = "1.9.3"
 
 [libraries]
 # Core Android
@@ -49,6 +50,7 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [bundles]
 compose = [
