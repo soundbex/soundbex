@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +41,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SoundbexApp() {
     var selectedTab by remember { mutableStateOf(0) }
@@ -78,7 +76,7 @@ fun SoundbexApp() {
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -166,56 +164,57 @@ fun SoundbexApp() {
 
 @Composable
 fun HomeScreen() {
-    val featuredPlaylists = listOf(
-        Playlist("1", "Today's Top Hits", "Most played songs now", "https://picsum.photos/300/300"),
-        Playlist("2", "Chill Vibes", "Relax and unwind", "https://picsum.photos/300/301"),
-        Playlist("3", "Workout Mix", "Energy for workout", "https://picsum.photos/300/302"),
-        Playlist("4", "Discover Weekly", "New recommendations", "https://picsum.photos/300/303"),
-        Playlist("5", "Party Hits", "Best party songs", "https://picsum.photos/300/304"),
-        Playlist("6", "Sleep Sounds", "Peaceful sleep music", "https://picsum.photos/300/305")
-    )
+    val featuredPlaylists by remember {
+        mutableStateOf(
+            listOf(
+                Playlist("1", "Today's Top Hits", "Most played songs now", "https://picsum.photos/300/300"),
+                Playlist("2", "Chill Vibes", "Relax and unwind", "https://picsum.photos/300/301"),
+                Playlist("3", "Workout Mix", "Energy for workout", "https://picsum.photos/300/302"),
+                Playlist("4", "Discover Weekly", "New recommendations", "https://picsum.photos/300/303")
+            )
+        )
+    }
 
-    val quickActions = listOf(
-        QuickAction("Liked Songs", Icons.Default.Favorite, Color(0xFFFF6B6B)),
-        QuickAction("Recently Played", Icons.Default.History, Color(0xFF4ECDC4)),
-        QuickAction("Downloaded", Icons.Default.Download, Color(0xFF45B7D1)),
-        QuickAction("Made For You", Icons.Default.Person, Color(0xFF96CEB4))
-    )
+    val quickActions by remember {
+        mutableStateOf(
+            listOf(
+                QuickAction("Liked Songs", Icons.Default.Favorite, Color(0xFFFF6B6B)),
+                QuickAction("Recently Played", Icons.Default.History, Color(0xFF4ECDC4)),
+                QuickAction("Downloaded", Icons.Default.Download, Color(0xFF45B7D1)),
+                QuickAction("Made For You", Icons.Default.Person, Color(0xFF96CEB4))
+            )
+        )
+    }
 
-    val moods = listOf("Happy", "Relaxed", "Energetic", "Focused", "Romantic", "Workout")
+    val moods by remember { mutableStateOf(listOf("Happy", "Relaxed", "Energetic", "Focused")) }
 
-    val recentlyPlayed = listOf(
-        Song("1", "Blinding Lights", "The Weeknd", "https://picsum.photos/150/150"),
-        Song("2", "Save Your Tears", "The Weeknd", "https://picsum.photos/150/151"),
-        Song("3", "Levitating", "Dua Lipa", "https://picsum.photos/150/152"),
-        Song("4", "Stay", "The Kid LAROI, Justin Bieber", "https://picsum.photos/150/153"),
-        Song("5", "Good 4 U", "Olivia Rodrigo", "https://picsum.photos/150/154"),
-        Song("6", "Kill Bill", "SZA", "https://picsum.photos/150/155")
-    )
+    val recentlyPlayed by remember {
+        mutableStateOf(
+            listOf(
+                Song("1", "Blinding Lights", "The Weeknd", "https://picsum.photos/150/150"),
+                Song("2", "Save Your Tears", "The Weeknd", "https://picsum.photos/150/151"),
+                Song("3", "Levitating", "Dua Lipa", "https://picsum.photos/150/152"),
+                Song("4", "Stay", "The Kid LAROI, Justin Bieber", "https://picsum.photos/150/153")
+            )
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
             Text(
-                text = "Good morning",
+                text = "SoundBex",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Ready to discover new music?",
+                text = "Simple and fast music & podcasting platform",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -227,7 +226,7 @@ fun HomeScreen() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                items(quickActions) { action ->
+                items(quickActions, key = { it.title }) { action ->
                     QuickActionCard(action)
                 }
             }
@@ -247,7 +246,7 @@ fun HomeScreen() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                items(moods) { mood ->
+                items(moods, key = { it }) { mood ->
                     FilterChip(
                         selected = false,
                         onClick = { },
@@ -278,19 +277,9 @@ fun HomeScreen() {
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        items(featuredPlaylists.chunked(2)) { rowItems ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                rowItems.forEach { playlist ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        FeaturedPlaylistCard(playlist = playlist)
-                    }
-                }
-            }
+        items(featuredPlaylists, key = { it.id }) { playlist ->
+            FeaturedPlaylistCard(playlist = playlist)
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         item {
@@ -311,8 +300,9 @@ fun HomeScreen() {
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        items(recentlyPlayed) { song ->
-            SongItem(song = song, modifier = Modifier.padding(vertical = 4.dp))
+        items(recentlyPlayed, key = { it.id }) { song ->
+            SongItem(song = song)
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -329,27 +319,25 @@ fun QuickActionCard(action: QuickAction) {
             containerColor = action.color.copy(alpha = 0.2f)
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Icon(
-                    imageVector = action.icon,
-                    contentDescription = action.title,
-                    tint = action.color,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = action.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = action.title,
+                tint = action.color,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = action.title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -361,6 +349,7 @@ fun FeaturedPlaylistCard(playlist: Playlist) {
             .fillMaxWidth()
             .height(160.dp),
         shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -376,14 +365,7 @@ fun FeaturedPlaylistCard(playlist: Playlist) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.8f)
-                            )
-                        )
-                    )
+                    .background(Color.Black.copy(alpha = 0.4f))
             )
 
             Column(
@@ -407,32 +389,16 @@ fun FeaturedPlaylistCard(playlist: Playlist) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-
-            IconButton(
-                onClick = { },
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.PlayArrow,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
         }
     }
 }
 
 @Composable
-fun SongItem(song: Song, modifier: Modifier = Modifier) {
+fun SongItem(song: Song) {
     Card(
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
@@ -485,7 +451,9 @@ fun SongItem(song: Song, modifier: Modifier = Modifier) {
 @Composable
 fun SearchScreen() {
     var searchText by remember { mutableStateOf("") }
-    val categories = listOf("Pop", "Rock", "Hip-Hop", "Jazz", "Classical", "Electronic", "R&B", "Country")
+    val categories by remember {
+        mutableStateOf(listOf("Pop", "Rock", "Hip-Hop", "Jazz", "Classical", "Electronic"))
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -520,17 +488,9 @@ fun SearchScreen() {
             )
         }
 
-        items(categories.chunked(2)) { rowItems ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                rowItems.forEach { category ->
-                    CategoryCard(category = category)
-                }
-            }
+        items(categories, key = { it }) { category ->
+            CategoryCard(category = category)
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -540,6 +500,7 @@ fun CategoryCard(category: String) {
     Card(
         onClick = { },
         modifier = Modifier
+            .fillMaxWidth()
             .height(80.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
@@ -561,31 +522,35 @@ fun CategoryCard(category: String) {
 
 @Composable
 fun LibraryScreen() {
-    val libraryItems = listOf(
-        LibraryItem("Liked Songs", "125 songs", Icons.Default.Favorite),
-        LibraryItem("My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
-        LibraryItem("Albums", "45 albums", Icons.Default.Album),
-        LibraryItem("Artists", "89 artists", Icons.Default.Person),
-        LibraryItem("Podcasts", "23 shows", Icons.Default.Mic),
-        LibraryItem("Downloaded", "Available offline", Icons.Default.Download)
-    )
+    val libraryItems by remember {
+        mutableStateOf(
+            listOf(
+                LibraryItem("Liked Songs", "125 songs", Icons.Default.Favorite),
+                LibraryItem("My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
+                LibraryItem("Albums", "45 albums", Icons.Default.Album),
+                LibraryItem("Artists", "89 artists", Icons.Default.Person)
+            )
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(16.dp)
     ) {
         item {
             Text(
                 text = "Your Library",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
+                fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        items(libraryItems) { item ->
+        items(libraryItems, key = { it.title }) { item ->
             LibraryItemRow(item = item)
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -594,9 +559,7 @@ fun LibraryScreen() {
 fun LibraryItemRow(item: LibraryItem) {
     Card(
         onClick = { },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
