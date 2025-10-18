@@ -9,7 +9,6 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Health check
 app.get('/', (req, res) => {
     res.json({
         message: 'SoundBex Backend Çalışıyor',
@@ -18,7 +17,6 @@ app.get('/', (req, res) => {
     });
 });
 
-// Arama endpoint
 app.get('/api/search', async (req, res) => {
     const query = req.query.q;
 
@@ -92,7 +90,6 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-// Stream endpoint - ÇALIŞAN YÖNTEM
 app.get('/api/stream', async (req, res) => {
     const videoId = req.query.videoId;
 
@@ -106,7 +103,6 @@ app.get('/api/stream', async (req, res) => {
     console.log(`🎵 Gerçek Audio Stream: ${videoId}`);
 
     try {
-        // Yöntem 1: Loader.to API
         const loaderUrl = await getAudioFromLoader(videoId);
         if (loaderUrl) {
             console.log(`✅ Loader.to MP3 bulundu`);
@@ -119,7 +115,6 @@ app.get('/api/stream', async (req, res) => {
             });
         }
 
-        // Yöntem 2: Y2Mate API
         const y2mateUrl = await getAudioFromY2Mate(videoId);
         if (y2mateUrl) {
             console.log(`✅ Y2Mate MP3 bulundu`);
@@ -132,7 +127,6 @@ app.get('/api/stream', async (req, res) => {
             });
         }
 
-        // Yöntem 3: Convert2MP3 API
         const convertUrl = await getAudioFromConvert2MP3(videoId);
         if (convertUrl) {
             console.log(`✅ Convert2MP3 bulundu`);
@@ -150,7 +144,6 @@ app.get('/api/stream', async (req, res) => {
     } catch (error) {
         console.error('❌ Tüm audio API\'leri başarısız:', error.message);
 
-        // SON ÇARE: YouTube'dan direkt audio stream (çalışma ihtimali yüksek)
         const audioStreamUrl = `https://www.youtube.com/watch?v=${videoId}`;
         console.log(`🎵 Direct YouTube stream deneniyor`);
 
@@ -164,7 +157,6 @@ app.get('/api/stream', async (req, res) => {
     }
 });
 
-// Loader.to API - ÇALIŞIYOR
 async function getAudioFromConvert2MP3(videoId) {
     try {
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -190,12 +182,10 @@ async function getAudioFromConvert2MP3(videoId) {
     return null;
 }
 
-// Y2Mate API
 async function getAudioFromY2Mate(videoId) {
     try {
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-        // 1. Adım: Analyze
         const analyzeResponse = await axios.post('https://www.y2mate.com/mates/analyzeV2/ajax',
             new URLSearchParams({
                 url: videoUrl,
@@ -213,7 +203,6 @@ async function getAudioFromY2Mate(videoId) {
             const mp3Link = result.links?.mp3?.['mp3128']?.k;
 
             if (mp3Link) {
-                // 2. Adım: Convert
                 const convertResponse = await axios.post('https://www.y2mate.com/mates/convertV2/index',
                     new URLSearchParams({
                         vid: videoId,
@@ -235,7 +224,6 @@ async function getAudioFromY2Mate(videoId) {
     return null;
 }
 
-// MP3Download API
 async function getAudioFromMP3Download(videoId) {
     try {
         const response = await axios.get(`https://api.vevioz.com/api/button/mp3/${videoId}`, {
@@ -251,7 +239,6 @@ async function getAudioFromMP3Download(videoId) {
     return null;
 }
 
-// Yardımcı fonksiyonlar
 function formatDuration(duration) {
     if (!duration) return "N/A";
 
@@ -268,7 +255,6 @@ function formatDuration(duration) {
     return "N/A";
 }
 
-// Health check
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',

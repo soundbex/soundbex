@@ -26,7 +26,7 @@ data class SearchResultSong(
 class SearchViewModel : ViewModel() {
 
     private val client = OkHttpClient()
-    private val BACKEND_URL = "http://10.0.2.2:3000" // Python backend
+    private val BACKEND_URL = "http://10.0.2.2:3000"
 
     private val _results = MutableStateFlow<List<SearchResultSong>>(emptyList())
     val results: StateFlow<List<SearchResultSong>> = _results

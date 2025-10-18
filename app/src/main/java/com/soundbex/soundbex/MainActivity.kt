@@ -84,7 +84,6 @@ fun SoundbexApp() {
     val currentPlayingId = playerManager.currentVideoId
     val isPlayingState = playerManager.isPlayingState
 
-    // Player durumunu takip et
     LaunchedEffect(currentPlayingId, isPlayingState) {
         isPlaying = isPlayingState && currentPlayingId == currentSong.videoId
     }
@@ -158,7 +157,6 @@ fun SoundbexApp() {
                                         if (currentPlayingId == currentSong.videoId) {
                                             playerManager.play()
                                         } else {
-                                            // Yeni şarkıyı çal
                                             playerManager.playSong(
                                                 currentSong.videoId,
                                                 currentSong.title,
@@ -221,7 +219,6 @@ fun SoundbexApp() {
                             duration = song.duration,
                             imageUrl = song.imageUrl
                         )
-                        // Şarkıyı çalmaya başla
                         playerManager.playSong(song.videoId, song.title, song.artist)
                     }
                 )

@@ -61,7 +61,6 @@ class PlayerManager(private val context: Context) {
                 Log.e(TAG, "Player Error: ${error.message}")
                 isPlayingState = false
 
-                // YOUTUBE'A YÖNLENDİRME YOK! Sadece log
                 Log.e(TAG, "❌ Müzik çalınamadı, lütfen başka bir şarkı deneyin")
             }
         })
@@ -77,7 +76,6 @@ class PlayerManager(private val context: Context) {
                 val streamData = getStreamFromBackend(videoId)
 
                 withContext(Dispatchers.Main) {
-                    // TÜM stream URL'lerini ExoPlayer ile dene
                     try {
                         val mediaItem = MediaItem.fromUri(streamData.url)
                         player.setMediaItem(mediaItem)
@@ -88,13 +86,11 @@ class PlayerManager(private val context: Context) {
                     } catch (exoError: Exception) {
                         Log.e(TAG, "❌ ExoPlayer error: ${exoError.message}")
                         isPlayingState = false
-                        // YOUTUBE'A YÖNLENDİRME YOK!
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Play error: ${e.message}")
                 isPlayingState = false
-                // YOUTUBE'A YÖNLENDİRME YOK!
             }
         }
     }
@@ -123,7 +119,6 @@ class PlayerManager(private val context: Context) {
 
                 Log.d(TAG, "🎵 Stream alındı - Type: $type, Source: $source")
 
-                // YouTube Music URL'si gelirse bile uygulama içinde dene!
                 StreamData(streamUrl, type, 0, "", source)
             }
         }
