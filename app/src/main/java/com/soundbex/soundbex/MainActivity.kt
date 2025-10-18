@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,11 +29,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.soundbex.soundbex.ui.theme.SoundbexTheme
+import com.soundbex.soundbex.PlayerManager
 
 class MainActivity : ComponentActivity() {
+    @androidx.annotation.OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -46,13 +48,46 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+data class CurrentSong(
+    val videoId: String,
+    val title: String,
+    val artist: String,
+    val duration: String,
+    val imageUrl: String?
+)
+
+@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(ExperimentalMaterial3Api::class, UnstableApi::class)
 @Composable
 fun SoundbexApp() {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Home", "Search", "Library")
+
+    var currentSong by remember {
+        mutableStateOf(
+            CurrentSong(
+                videoId = "default",
+                title = "Şarkı Çalınmıyor",
+                artist = "Lütfen bir şarkı seçin",
+                duration = "0:00",
+                imageUrl = "https://placehold.co/80x80/cccccc/ffffff?text=Soundbex"
+            )
+        )
+    }
+
     var isPlaying by remember { mutableStateOf(false) }
+
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val playerManager = remember { PlayerManager(context) }
+
+    val currentPlayingId = playerManager.currentVideoId
+    val isPlayingState = playerManager.isPlayingState
+
+    // Player durumunu takip et
+    LaunchedEffect(currentPlayingId, isPlayingState) {
+        isPlaying = isPlayingState && currentPlayingId == currentSong.videoId
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -76,56 +111,74 @@ fun SoundbexApp() {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 8.dp)
+                        .height(if (currentSong.videoId != "default") 76.dp else 0.dp),
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OptimizedAsyncImage(
-                            imageUrl = "https://picsum.photos/80/80",
-                            contentDescription = "Now playing",
+                    if (currentSong.videoId != "default") {
+                        Row(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Blinding Lights",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "The Weeknd",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { isPlaying = !isPlaying },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
+                            OptimizedAsyncImage(
+                                imageUrl = currentSong.imageUrl,
+                                contentDescription = "Now playing",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(6.dp))
                             )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = currentSong.title,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = currentSong.artist,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (isPlaying) {
+                                        playerManager.pause()
+                                    } else {
+                                        if (currentPlayingId == currentSong.videoId) {
+                                            playerManager.play()
+                                        } else {
+                                            // Yeni şarkıyı çal
+                                            playerManager.playSong(
+                                                currentSong.videoId,
+                                                currentSong.title,
+                                                currentSong.artist
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -157,7 +210,21 @@ fun SoundbexApp() {
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
                 0 -> HomeScreen()
-                1 -> SearchScreen(snackbarHostState = snackbarHostState)
+                1 -> SearchScreen(
+                    snackbarHostState = snackbarHostState,
+                    playerManager = playerManager,
+                    onSongClick = { song ->
+                        currentSong = CurrentSong(
+                            videoId = song.videoId,
+                            title = song.title,
+                            artist = song.artist,
+                            duration = song.duration,
+                            imageUrl = song.imageUrl
+                        )
+                        // Şarkıyı çalmaya başla
+                        playerManager.playSong(song.videoId, song.title, song.artist)
+                    }
+                )
                 2 -> LibraryScreen()
             }
         }
@@ -166,7 +233,7 @@ fun SoundbexApp() {
 
 @Composable
 fun OptimizedAsyncImage(
-    imageUrl: String,
+    imageUrl: String?,
     contentDescription: String,
     modifier: Modifier = Modifier
 ) {
@@ -466,13 +533,21 @@ fun SongItem(song: Song) {
     }
 }
 
+@UnstableApi
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = viewModel(),
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    playerManager: PlayerManager,
+    onSongClick: (SearchResultSong) -> Unit
 ) {
+    val context = LocalContext.current
+
     var searchText by remember { mutableStateOf("") }
     val results by viewModel.results.collectAsState()
+
+    val currentPlayingId = playerManager.currentVideoId
+    val isPlayingState = playerManager.isPlayingState
 
     LaunchedEffect(viewModel.errorFlow) {
         viewModel.errorFlow.collect { errorMessage ->
@@ -535,12 +610,17 @@ fun SearchScreen(
                 contentPadding = PaddingValues(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(results, key = { it.title + it.artist }) { song ->
+                items(results, key = { it.videoId }) { song ->
+                    val isPlayingThisSong = song.videoId == currentPlayingId && isPlayingState
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { }
+                            .clickable {
+                                onSongClick(song)
+                                playerManager.playSong(song.videoId, song.title, song.artist)
+                            }
                             .padding(vertical = 8.dp)
                     ) {
                         AsyncImage(
@@ -548,8 +628,7 @@ fun SearchScreen(
                             contentDescription = null,
                             modifier = Modifier
                                 .size(56.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            placeholder = rememberVectorPainter(Icons.Default.Search)
+                                .clip(RoundedCornerShape(8.dp))
                         )
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -565,9 +644,9 @@ fun SearchScreen(
                             )
                         }
                         Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Oynat",
-                            tint = MaterialTheme.colorScheme.primary,
+                            imageVector = if (isPlayingThisSong) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlayingThisSong) "Durdur" else "Oynat",
+                            tint = if (isPlayingThisSong) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -579,37 +658,12 @@ fun SearchScreen(
 }
 
 @Composable
-fun CategoryCard(category: String) {
-    Card(
-        onClick = { },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = category,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(16.dp)
-            )
-        }
-    }
-}
-
-@Composable
 fun LibraryScreen() {
     val libraryItems by remember {
         mutableStateOf(
             listOf(
-                LibraryItem("lib1", "Liked Songs", "125 songs", Icons.Default.Favorite),
-                LibraryItem("lib2", "My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
+                LibraryItem("lib1", "Liked Songs", "0 songs", Icons.Default.Favorite),
+                LibraryItem("lib2", "My Playlists", "0 playlists", Icons.Default.PlaylistPlay),
             )
         )
     }
@@ -708,6 +762,7 @@ data class LibraryItem(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
+@UnstableApi
 @Preview(showBackground = true)
 @Composable
 fun SoundbexAppPreview() {
