@@ -22,11 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.soundbex.soundbex.ui.theme.SoundbexTheme
 
 class MainActivity : ComponentActivity() {
@@ -84,8 +86,8 @@ fun SoundbexApp() {
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AsyncImage(
-                            model = "https://picsum.photos/40/40",
+                        OptimizedAsyncImage(
+                            imageUrl = "https://picsum.photos/80/80",
                             contentDescription = "Now playing",
                             modifier = Modifier
                                 .size(40.dp)
@@ -163,14 +165,32 @@ fun SoundbexApp() {
 }
 
 @Composable
+fun OptimizedAsyncImage(
+    imageUrl: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(imageUrl)
+            .crossfade(false)
+            .size(200)
+            .build(),
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = ContentScale.Crop
+    )
+}
+
+@Composable
 fun HomeScreen() {
     val featuredPlaylists by remember {
         mutableStateOf(
             listOf(
-                Playlist("1", "Today's Top Hits", "Most played songs now", "https://picsum.photos/300/300"),
-                Playlist("2", "Chill Vibes", "Relax and unwind", "https://picsum.photos/300/301"),
-                Playlist("3", "Workout Mix", "Energy for workout", "https://picsum.photos/300/302"),
-                Playlist("4", "Discover Weekly", "New recommendations", "https://picsum.photos/300/303")
+                Playlist("playlist1", "Today's Top Hits", "Most played songs now", "https://picsum.photos/200/200?1"),
+                Playlist("playlist2", "Chill Vibes", "Relax and unwind", "https://picsum.photos/200/200?2"),
+                Playlist("playlist3", "Workout Mix", "Energy for workout", "https://picsum.photos/200/200?3"),
+                Playlist("playlist4", "Discover Weekly", "New recommendations", "https://picsum.photos/200/200?4")
             )
         )
     }
@@ -178,10 +198,10 @@ fun HomeScreen() {
     val quickActions by remember {
         mutableStateOf(
             listOf(
-                QuickAction("Liked Songs", Icons.Default.Favorite, Color(0xFFFF6B6B)),
-                QuickAction("Recently Played", Icons.Default.History, Color(0xFF4ECDC4)),
-                QuickAction("Downloaded", Icons.Default.Download, Color(0xFF45B7D1)),
-                QuickAction("Made For You", Icons.Default.Person, Color(0xFF96CEB4))
+                QuickAction("action1", "Liked Songs", Icons.Default.Favorite, Color(0xFFFF6B6B)),
+                QuickAction("action2", "Recently Played", Icons.Default.History, Color(0xFF4ECDC4)),
+                QuickAction("action3", "Downloaded", Icons.Default.Download, Color(0xFF45B7D1)),
+                QuickAction("action4", "Made For You", Icons.Default.Person, Color(0xFF96CEB4))
             )
         )
     }
@@ -191,10 +211,10 @@ fun HomeScreen() {
     val recentlyPlayed by remember {
         mutableStateOf(
             listOf(
-                Song("1", "Blinding Lights", "The Weeknd", "https://picsum.photos/150/150"),
-                Song("2", "Save Your Tears", "The Weeknd", "https://picsum.photos/150/151"),
-                Song("3", "Levitating", "Dua Lipa", "https://picsum.photos/150/152"),
-                Song("4", "Stay", "The Kid LAROI, Justin Bieber", "https://picsum.photos/150/153")
+                Song("song1", "Blinding Lights", "The Weeknd", "https://picsum.photos/100/100?1"),
+                Song("song2", "Save Your Tears", "The Weeknd", "https://picsum.photos/100/100?2"),
+                Song("song3", "Levitating", "Dua Lipa", "https://picsum.photos/100/100?3"),
+                Song("song4", "Stay", "The Kid LAROI, Justin Bieber", "https://picsum.photos/100/100?4")
             )
         )
     }
@@ -226,7 +246,7 @@ fun HomeScreen() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                items(quickActions, key = { it.title }) { action ->
+                items(quickActions, key = { it.id }) { action ->
                     QuickActionCard(action)
                 }
             }
@@ -355,11 +375,10 @@ fun FeaturedPlaylistCard(playlist: Playlist) {
         )
     ) {
         Box {
-            AsyncImage(
-                model = playlist.imageUrl,
+            OptimizedAsyncImage(
+                imageUrl = playlist.imageUrl,
                 contentDescription = playlist.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                modifier = Modifier.fillMaxSize()
             )
 
             Box(
@@ -409,13 +428,12 @@ fun SongItem(song: Song) {
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = song.imageUrl,
+            OptimizedAsyncImage(
+                imageUrl = song.imageUrl,
                 contentDescription = song.title,
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-                contentScale = ContentScale.Crop
+                    .clip(RoundedCornerShape(6.dp))
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -525,10 +543,10 @@ fun LibraryScreen() {
     val libraryItems by remember {
         mutableStateOf(
             listOf(
-                LibraryItem("Liked Songs", "125 songs", Icons.Default.Favorite),
-                LibraryItem("My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
-                LibraryItem("Albums", "45 albums", Icons.Default.Album),
-                LibraryItem("Artists", "89 artists", Icons.Default.Person)
+                LibraryItem("lib1", "Liked Songs", "125 songs", Icons.Default.Favorite),
+                LibraryItem("lib2", "My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
+                LibraryItem("lib3", "Albums", "45 albums", Icons.Default.Album),
+                LibraryItem("lib4", "Artists", "89 artists", Icons.Default.Person)
             )
         )
     }
@@ -548,7 +566,7 @@ fun LibraryScreen() {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        items(libraryItems, key = { it.title }) { item ->
+        items(libraryItems, key = { it.id }) { item ->
             LibraryItemRow(item = item)
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -614,12 +632,14 @@ data class Song(
 )
 
 data class QuickAction(
+    val id: String,
     val title: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val color: Color
 )
 
 data class LibraryItem(
+    val id: String,
     val title: String,
     val subtitle: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector
