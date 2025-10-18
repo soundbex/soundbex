@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.soundbex.soundbex.ui.theme.SoundbexTheme
@@ -49,6 +52,7 @@ fun SoundbexApp() {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Home", "Search", "Library")
     var isPlaying by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -66,6 +70,7 @@ fun SoundbexApp() {
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             Column {
                 Card(
@@ -152,7 +157,7 @@ fun SoundbexApp() {
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
                 0 -> HomeScreen()
-                1 -> SearchScreen()
+                1 -> SearchScreen(snackbarHostState = snackbarHostState)
                 2 -> LibraryScreen()
             }
         }
@@ -462,48 +467,113 @@ fun SongItem(song: Song) {
 }
 
 @Composable
-fun SearchScreen() {
+fun SearchScreen(
+    viewModel: SearchViewModel = viewModel(),
+    snackbarHostState: SnackbarHostState
+) {
     var searchText by remember { mutableStateOf("") }
-    val categories by remember {
-        mutableStateOf(listOf("Pop", "Rock", "Hip-Hop", "Jazz", "Classical", "Electronic"))
+    val results by viewModel.results.collectAsState()
+
+    LaunchedEffect(viewModel.errorFlow) {
+        viewModel.errorFlow.collect { errorMessage ->
+            snackbarHostState.showSnackbar(
+                message = errorMessage,
+                duration = SnackbarDuration.Short
+            )
+        }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        item {
-            TextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                placeholder = { Text("Artists, songs, or podcasts") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        TextField(
+            value = searchText,
+            onValueChange = {
+                searchText = it
+                if (it.length > 2) viewModel.searchSongs(it)
+            },
+            placeholder = { Text("Şarkı, sanatçı veya albüm ara...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Arama") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+                .clip(RoundedCornerShape(28.dp)),
+            singleLine = true,
+            maxLines = 1,
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        if (results.isEmpty() && searchText.isNotEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "'${searchText}' için sonuç bulunamadı.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            )
-        }
-
-        item {
-            Text(
-                text = "Browse all",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-
-        items(categories, key = { it }) { category ->
-            CategoryCard(category = category)
-            Spacer(modifier = Modifier.height(8.dp))
+            }
+        } else if (results.isEmpty() && searchText.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Aramaya başlamak için yazın.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(results, key = { it.title + it.artist }) { song ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = song.imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            placeholder = rememberVectorPainter(Icons.Default.Search)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                song.title,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                song.artist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Oynat",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                    Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+                }
+            }
         }
     }
 }
