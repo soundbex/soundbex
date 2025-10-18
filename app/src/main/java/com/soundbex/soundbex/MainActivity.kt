@@ -64,11 +64,6 @@ fun SoundbexApp() {
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
-                    }
-                }
             )
         },
         bottomBar = {
@@ -545,8 +540,6 @@ fun LibraryScreen() {
             listOf(
                 LibraryItem("lib1", "Liked Songs", "125 songs", Icons.Default.Favorite),
                 LibraryItem("lib2", "My Playlists", "12 playlists", Icons.Default.PlaylistPlay),
-                LibraryItem("lib3", "Albums", "45 albums", Icons.Default.Album),
-                LibraryItem("lib4", "Artists", "89 artists", Icons.Default.Person)
             )
         )
     }
