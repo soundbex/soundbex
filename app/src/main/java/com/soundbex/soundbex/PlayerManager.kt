@@ -1,8 +1,6 @@
 package com.soundbex.soundbex
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.media3.common.MediaItem
@@ -15,7 +13,6 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 
-
 @UnstableApi
 class PlayerManager(private val context: Context) {
     val player: ExoPlayer = ExoPlayer.Builder(context).build()
@@ -24,6 +21,7 @@ class PlayerManager(private val context: Context) {
     var currentSongTitle by mutableStateOf("")
     var currentSongArtist by mutableStateOf("")
     var isPlayingState by mutableStateOf(false)
+    var isLoadingState by mutableStateOf(false)
 
     private val TAG = "SoundBexPlayer"
     private val BACKEND_URL = "http://10.0.2.2:3000"
@@ -60,8 +58,7 @@ class PlayerManager(private val context: Context) {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Log.e(TAG, "Player Error: ${error.message}")
                 isPlayingState = false
-
-                Log.e(TAG, "❌ Müzik çalınamadı, lütfen başka bir şarkı deneyin")
+                Log.e(TAG, "Müzik çalınamadı, lütfen başka bir şarkı deneyin")
             }
         })
     }
@@ -70,6 +67,7 @@ class PlayerManager(private val context: Context) {
         currentVideoId = videoId
         currentSongTitle = title
         currentSongArtist = artist
+        isLoadingState = true
 
         coroutineScope.launch {
             try {
@@ -82,15 +80,18 @@ class PlayerManager(private val context: Context) {
                         player.prepare()
                         player.play()
                         isPlayingState = true
-                        Log.d(TAG, "🎧 Uygulamada çalınıyor: $title - Type: ${streamData.type}")
+                        Log.d(TAG, "Uygulamada çalınıyor: $title - Type: ${streamData.type}")
                     } catch (exoError: Exception) {
-                        Log.e(TAG, "❌ ExoPlayer error: ${exoError.message}")
+                        Log.e(TAG, "ExoPlayer error: ${exoError.message}")
                         isPlayingState = false
+                    } finally {
+                        isLoadingState = false
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Play error: ${e.message}")
+                Log.e(TAG, "Play error: ${e.message}")
                 isPlayingState = false
+                isLoadingState = false
             }
         }
     }
@@ -117,7 +118,7 @@ class PlayerManager(private val context: Context) {
                 val type = json.optString("type", "unknown")
                 val source = json.optString("source", "")
 
-                Log.d(TAG, "🎵 Stream alındı - Type: $type, Source: $source")
+                Log.d(TAG, "Stream alındı - Type: $type, Source: $source")
 
                 StreamData(streamUrl, type, 0, "", source)
             }

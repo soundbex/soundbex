@@ -83,6 +83,7 @@ fun SoundbexApp() {
 
     val currentPlayingId = playerManager.currentVideoId
     val isPlayingState = playerManager.isPlayingState
+    val isLoadingState = playerManager.isLoadingState
 
     LaunchedEffect(currentPlayingId, isPlayingState) {
         isPlaying = isPlayingState && currentPlayingId == currentSong.videoId
@@ -116,66 +117,121 @@ fun SoundbexApp() {
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     if (currentSong.videoId != "default") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OptimizedAsyncImage(
-                                imageUrl = currentSong.imageUrl,
-                                contentDescription = "Now playing",
+                        if (isLoadingState) {
+                            Row(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = currentSong.title,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = currentSong.artist,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    if (isPlaying) {
-                                        playerManager.pause()
-                                    } else {
-                                        if (currentPlayingId == currentSong.videoId) {
-                                            playerManager.play()
-                                        } else {
-                                            playerManager.playSong(
-                                                currentSong.videoId,
-                                                currentSong.title,
-                                                currentSong.artist
-                                            )
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                                    contentDescription = if (isPlaying) "Pause" else "Play",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Yükleniyor...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = currentSong.title,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OptimizedAsyncImage(
+                                    imageUrl = currentSong.imageUrl,
+                                    contentDescription = "Now playing",
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(6.dp))
                                 )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = currentSong.title,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = currentSong.artist,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        if (isPlaying) {
+                                            playerManager.pause()
+                                        } else {
+                                            if (currentPlayingId == currentSong.videoId) {
+                                                playerManager.play()
+                                            } else {
+                                                playerManager.playSong(
+                                                    currentSong.videoId,
+                                                    currentSong.title,
+                                                    currentSong.artist
+                                                )
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                                        contentDescription = if (isPlaying) "Pause" else "Play",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -542,18 +598,11 @@ fun SearchScreen(
 
     var searchText by remember { mutableStateOf("") }
     val results by viewModel.results.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     val currentPlayingId = playerManager.currentVideoId
     val isPlayingState = playerManager.isPlayingState
-
-    LaunchedEffect(viewModel.errorFlow) {
-        viewModel.errorFlow.collect { errorMessage ->
-            snackbarHostState.showSnackbar(
-                message = errorMessage,
-                duration = SnackbarDuration.Short
-            )
-        }
-    }
+    val isLoadingState = playerManager.isLoadingState
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         TextField(
@@ -563,7 +612,21 @@ fun SearchScreen(
                 if (it.length > 2) viewModel.searchSongs(it)
             },
             placeholder = { Text("Şarkı, sanatçı veya albüm ara...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Arama") },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Arama",
+                    tint = if (isLoading) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
@@ -582,7 +645,14 @@ fun SearchScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        if (results.isEmpty() && searchText.isNotEmpty()) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (results.isEmpty() && searchText.isNotEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -609,6 +679,7 @@ fun SearchScreen(
             ) {
                 items(results, key = { it.videoId }) { song ->
                     val isPlayingThisSong = song.videoId == currentPlayingId && isPlayingState
+                    val isLoadingThisSong = song.videoId == currentPlayingId && isLoadingState
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -640,12 +711,19 @@ fun SearchScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Icon(
-                            imageVector = if (isPlayingThisSong) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlayingThisSong) "Durdur" else "Oynat",
-                            tint = if (isPlayingThisSong) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
+                        if (isLoadingThisSong) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (isPlayingThisSong) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlayingThisSong) "Durdur" else "Oynat",
+                                tint = if (isPlayingThisSong) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                     Divider(color = MaterialTheme.colorScheme.surfaceVariant)
                 }
