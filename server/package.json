@@ -14,6 +14,7 @@
     "axios": "^1.12.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "youtube-sr": "^4.3.12"
+    "youtube-sr": "^4.3.12",
+    "yt-dlp-exec": "^1.0.2"
   }
 }
