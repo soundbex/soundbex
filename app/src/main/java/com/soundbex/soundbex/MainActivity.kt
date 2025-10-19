@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -75,8 +77,6 @@ fun SoundbexApp() {
         )
     }
 
-    var isPlaying by remember { mutableStateOf(false) }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val playerManager = remember { PlayerManager(context) }
@@ -84,9 +84,25 @@ fun SoundbexApp() {
     val currentPlayingId = playerManager.currentVideoId
     val isPlayingState = playerManager.isPlayingState
     val isLoadingState = playerManager.isLoadingState
+    val currentPosition = playerManager.currentPlaybackPosition
+    val totalDuration = playerManager.totalDuration
+    val progress by playerManager.progressFlow.collectAsState()
 
-    LaunchedEffect(currentPlayingId, isPlayingState) {
-        isPlaying = isPlayingState && currentPlayingId == currentSong.videoId
+    LaunchedEffect(currentPlayingId) {
+        if (currentPlayingId != null && currentPlayingId != currentSong.videoId) {
+            val currentPlaylist = playerManager.currentPlaylist
+            val currentIndex = playerManager.currentPlaylistIndex
+            if (currentPlaylist.isNotEmpty() && currentIndex < currentPlaylist.size) {
+                val song = currentPlaylist[currentIndex]
+                currentSong = CurrentSong(
+                    videoId = song.videoId,
+                    title = song.title,
+                    artist = song.artist,
+                    duration = song.duration,
+                    imageUrl = song.imageUrl
+                )
+            }
+        }
     }
 
     Scaffold(
@@ -112,125 +128,210 @@ fun SoundbexApp() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp)
-                        .height(if (currentSong.videoId != "default") 76.dp else 0.dp),
+                        .height(if (currentSong.videoId != "default") 140.dp else 0.dp),
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     if (currentSong.videoId != "default") {
-                        if (isLoadingState) {
-                            Row(
+                        Column {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .height(40.dp)
+                                    .clickable { }
+                                    .pointerInput(Unit) {
+                                        detectTapGestures { offset ->
+                                            val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                                            playerManager.seekToProgress(newProgress)
+                                        }
+                                    }
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Yükleniyor...",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = currentSong.title,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                        .align(Alignment.CenterStart)
+                                )
 
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth(progress)
+                                        .height(4.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                        .align(Alignment.CenterStart)
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = Color.White
+                                    Text(
+                                        text = formatTime(currentPosition),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 12.dp)
+                                    )
+
+                                    Text(
+                                        text = formatTime(totalDuration),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(end = 12.dp)
                                     )
                                 }
                             }
-                        } else {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OptimizedAsyncImage(
-                                    imageUrl = currentSong.imageUrl,
-                                    contentDescription = "Now playing",
+
+                            if (isLoadingState) {
+                                Row(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                )
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = currentSong.title,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = currentSong.artist,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                IconButton(
-                                    onClick = {
-                                        if (isPlaying) {
-                                            playerManager.pause()
-                                        } else {
-                                            if (currentPlayingId == currentSong.videoId) {
-                                                playerManager.play()
-                                            } else {
-                                                playerManager.playSong(
-                                                    currentSong.videoId,
-                                                    currentSong.title,
-                                                    currentSong.artist
-                                                )
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary)
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                                        contentDescription = if (isPlaying) "Pause" else "Play",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Yükleniyor...",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = currentSong.title,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OptimizedAsyncImage(
+                                        imageUrl = currentSong.imageUrl,
+                                        contentDescription = "Now playing",
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(6.dp))
                                     )
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = currentSong.title,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = currentSong.artist,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    Row {
+                                        IconButton(
+                                            onClick = { playerManager.playPrevious() },
+                                            enabled = playerManager.hasPrevious(),
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.SkipPrevious,
+                                                contentDescription = "Önceki şarkı",
+                                                tint = if (playerManager.hasPrevious()) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                }
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                if (isPlayingState) {
+                                                    playerManager.pause()
+                                                } else {
+                                                    playerManager.play()
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isPlayingState) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                                                contentDescription = if (isPlayingState) "Durdur" else "Oynat",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { playerManager.playNext() },
+                                            enabled = playerManager.hasNext(),
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.SkipNext,
+                                                contentDescription = "Sonraki şarkı",
+                                                tint = if (playerManager.hasNext()) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -263,7 +364,18 @@ fun SoundbexApp() {
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
-                0 -> HomeScreen()
+                0 -> HomeScreen(
+                    playerManager = playerManager,
+                    onSongClick = { song ->
+                        currentSong = CurrentSong(
+                            videoId = song.videoId,
+                            title = song.title,
+                            artist = song.artist,
+                            duration = song.duration,
+                            imageUrl = song.imageUrl
+                        )
+                    }
+                )
                 1 -> SearchScreen(
                     snackbarHostState = snackbarHostState,
                     playerManager = playerManager,
@@ -275,13 +387,30 @@ fun SoundbexApp() {
                             duration = song.duration,
                             imageUrl = song.imageUrl
                         )
-                        playerManager.playSong(song.videoId, song.title, song.artist)
                     }
                 )
-                2 -> LibraryScreen()
+                2 -> LibraryScreen(
+                    playerManager = playerManager,
+                    onSongClick = { song ->
+                        currentSong = CurrentSong(
+                            videoId = song.videoId,
+                            title = song.title,
+                            artist = song.artist,
+                            duration = song.duration,
+                            imageUrl = song.imageUrl
+                        )
+                    }
+                )
             }
         }
     }
+}
+
+private fun formatTime(milliseconds: Long): String {
+    val totalSeconds = milliseconds / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
 }
 
 @Composable
@@ -302,8 +431,12 @@ fun OptimizedAsyncImage(
     )
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    playerManager: PlayerManager? = null,
+    onSongClick: (PlayerManager.Song) -> Unit = {}
+) {
     val featuredPlaylists by remember {
         mutableStateOf(
             listOf(
@@ -331,10 +464,10 @@ fun HomeScreen() {
     val recentlyPlayed by remember {
         mutableStateOf(
             listOf(
-                Song("song1", "Blinding Lights", "The Weeknd", "https://picsum.photos/100/100?1"),
-                Song("song2", "Save Your Tears", "The Weeknd", "https://picsum.photos/100/100?2"),
-                Song("song3", "Levitating", "Dua Lipa", "https://picsum.photos/100/100?3"),
-                Song("song4", "Stay", "The Kid LAROI, Justin Bieber", "https://picsum.photos/100/100?4")
+                PlayerManager.Song("song1", "Blinding Lights", "The Weeknd", "3:20", "https://picsum.photos/100/100?1", "dummy1"),
+                PlayerManager.Song("song2", "Save Your Tears", "The Weeknd", "3:35", "https://picsum.photos/100/100?2", "dummy2"),
+                PlayerManager.Song("song3", "Levitating", "Dua Lipa", "3:23", "https://picsum.photos/100/100?3", "dummy3"),
+                PlayerManager.Song("song4", "Stay", "The Kid LAROI, Justin Bieber", "2:21", "https://picsum.photos/100/100?4", "dummy4")
             )
         )
     }
@@ -441,7 +574,14 @@ fun HomeScreen() {
         }
 
         items(recentlyPlayed, key = { it.id }) { song ->
-            SongItem(song = song)
+            SongItem(
+                song = song,
+                playerManager = playerManager,
+                onSongClick = { clickedSong ->
+                    playerManager?.setPlaylist(recentlyPlayed, recentlyPlayed.indexOf(clickedSong))
+                    onSongClick(clickedSong)
+                }
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -532,8 +672,16 @@ fun FeaturedPlaylistCard(playlist: Playlist) {
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun SongItem(song: Song) {
+fun SongItem(
+    song: PlayerManager.Song,
+    playerManager: PlayerManager? = null,
+    onSongClick: (PlayerManager.Song) -> Unit = {}
+) {
+    val isCurrentSong = playerManager?.currentVideoId == song.videoId
+    val isPlaying = playerManager?.isPlayingState == true
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -545,6 +693,7 @@ fun SongItem(song: Song) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onSongClick(song) }
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -575,10 +724,13 @@ fun SongItem(song: Song) {
                 )
             }
 
-            IconButton(onClick = { }) {
+            IconButton(
+                onClick = { onSongClick(song) },
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
-                    imageVector = Icons.Outlined.PlayArrow,
-                    contentDescription = "Play",
+                    imageVector = if (isCurrentSong && isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                    contentDescription = if (isCurrentSong && isPlaying) "Durdur" else "Oynat",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -686,8 +838,20 @@ fun SearchScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
+                                val playlistSongs = results.map { result ->
+                                    PlayerManager.Song(
+                                        id = result.videoId,
+                                        title = result.title,
+                                        artist = result.artist,
+                                        duration = result.duration,
+                                        imageUrl = result.imageUrl,
+                                        videoId = result.videoId
+                                    )
+                                }
+
+                                val currentIndex = results.indexOfFirst { it.videoId == song.videoId }
+                                playerManager.setPlaylist(playlistSongs, currentIndex)
                                 onSongClick(song)
-                                playerManager.playSong(song.videoId, song.title, song.artist)
                             }
                             .padding(vertical = 8.dp)
                     ) {
@@ -732,13 +896,26 @@ fun SearchScreen(
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun LibraryScreen() {
+fun LibraryScreen(
+    playerManager: PlayerManager? = null,
+    onSongClick: (PlayerManager.Song) -> Unit = {}
+) {
     val libraryItems by remember {
         mutableStateOf(
             listOf(
                 LibraryItem("lib1", "Liked Songs", "0 songs", Icons.Default.Favorite),
                 LibraryItem("lib2", "My Playlists", "0 playlists", Icons.Default.PlaylistPlay),
+            )
+        )
+    }
+
+    val librarySongs by remember {
+        mutableStateOf(
+            listOf(
+                PlayerManager.Song("lib1", "Liked Song 1", "Artist 1", "3:45", "https://picsum.photos/100/100?5", "lib1"),
+                PlayerManager.Song("lib2", "Liked Song 2", "Artist 2", "4:20", "https://picsum.photos/100/100?6", "lib2")
             )
         )
     }
@@ -760,6 +937,27 @@ fun LibraryScreen() {
 
         items(libraryItems, key = { it.id }) { item ->
             LibraryItemRow(item = item)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        item {
+            Text(
+                text = "Your Songs",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+        }
+
+        items(librarySongs, key = { it.id }) { song ->
+            SongItem(
+                song = song,
+                playerManager = playerManager,
+                onSongClick = { clickedSong ->
+                    playerManager?.setPlaylist(librarySongs, librarySongs.indexOf(clickedSong))
+                    onSongClick(clickedSong)
+                }
+            )
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -813,13 +1011,6 @@ data class Playlist(
     val id: String,
     val title: String,
     val description: String,
-    val imageUrl: String
-)
-
-data class Song(
-    val id: String,
-    val title: String,
-    val artist: String,
     val imageUrl: String
 )
 
